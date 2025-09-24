@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ocean Chat Frontend (Next.js)
 
-## Getting Started
+Modern, minimalist chat UI with Ocean Professional theme. Centered chat panel, sidebar for history, and streaming responses with references.
 
-First, run the development server:
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## UI Overview
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Ocean Professional theme using blue and amber accents.
+- Centered chat panel with message bubbles and a bottom composer.
+- Left sidebar: basic static history placeholders (can be wired later).
+- Answers support streaming tokens and grounded references (citations).
+- Keyboard: Enter to send, Shift+Enter for newline.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Backend Interface
 
-## Learn More
+The UI integrates with a backend route at:
 
-To learn more about Next.js, take a look at the following resources:
+- POST /api/ask
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Expected request payload:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```json
+{
+  "prompt": "Your question",
+  "history": [{ "role": "user", "content": "previous" }, { "role": "assistant", "content": "answer" }]
+}
+```
 
-## Deploy on Vercel
+Expected streaming response over the HTTP body as NDJSON lines (one JSON per line). Supported chunk shapes:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```json
+{ "type": "start", "messageId": "optional" }
+{ "type": "token", "value": "partial text" }
+{ "type": "refs", "value": [ { "title":"Doc", "url":"https://...", "snippet":"..." } ] }
+{ "type": "done" }
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Errors may be returned as:
+
+```json
+{ "type": "error", "error": "message" }
+```
+
+The frontend accumulates `token` chunks into the assistant message and shows `refs` as citations.
+
+## Theming
+
+- Colors are defined in `src/app/globals.css` with CSS variables.
+- Tailwind is available for utility classes (Next 15 + Tailwind v4).
+- Smooth gradients, subtle shadows, and rounded corners for depth.
+
+## Notes
+
+- History is currently in-memory; a small localStorage helper is included at `src/lib/history.ts` for future use.
+- This app is exportable (next.config.ts has `output: "export"`). Ensure backend is available when deployed behind the same origin.
