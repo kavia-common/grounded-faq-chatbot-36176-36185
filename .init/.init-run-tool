@@ -1,0 +1,4 @@
+{
+    "command": "npm run dev -- -p <port> -H <host>",
+    "working_directory": "/home/kavia/workspace/code-generation/grounded-faq-chatbot-36176-36185/chatbot_frontend"
+}
