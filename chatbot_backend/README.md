@@ -25,6 +25,11 @@ export HOST="0.0.0.0"
 export PORT="8080"
 ```
 
+Security note:
+- Never commit your real OPENAI_API_KEY to version control.
+- In production, set OPENAI_API_KEY as a container/service environment variable (e.g., in your orchestrator or hosting platform).
+- For local development, you can create a .env file based on .env.example and set OPENAI_API_KEY there.
+
 3) Ensure your Postgres has pgvector extension installed. Create needed tables:
 
 ```bash
