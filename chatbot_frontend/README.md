@@ -24,6 +24,14 @@ The UI integrates with a backend route at:
 
 - POST /api/ask
 
+This repository includes a stubbed Next.js API route at `src/app/api/ask/route.ts` that streams NDJSON to unblock the chat UI locally. Replace the stub with a call to your real backend when available.
+
+To wire a real backend:
+- Set an environment variable (request from orchestrator): `NEXT_PUBLIC_BACKEND_URL=https://your-backend-host`
+- In `src/app/api/ask/route.ts`, forward the request: 
+  `await fetch(\`\${process.env.NEXT_PUBLIC_BACKEND_URL}/api/ask\`, { method: "POST", headers, body })` and stream the response body back to the client.
+- Alternatively, configure Next.js rewrites in `next.config.ts` to proxy `/api/ask` to your backend service.
+
 Expected request payload:
 
 ```json
