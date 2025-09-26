@@ -82,54 +82,77 @@ def _normalize_city(value: str) -> str:
 
 async def fetch_openweather_current(city: str) -> Dict[str, Any]:
     """
-    Fetch current weather for a city using OpenWeatherMap Current Weather Data API.
-    Uses environment variable OPENWEATHERMAP_API_KEY for authentication.
+    Return a mocked/demo current weather response for a given city.
+
+    This stubs the live API and returns realistic, static sample data in the
+    same shape as the expected processed output. A `mocked` flag and source note
+    are included so consumers know this is demo data.
     """
-    api_key = os.getenv("OPENWEATHERMAP_API_KEY", "")
-    if not api_key:
-        raise HTTPException(
-            status_code=500,
-            detail="Weather API not configured. Missing OPENWEATHERMAP_API_KEY.",
-        )
+    normalized = _normalize_city(city)
+    # Simple, realistic mock set for some known cities; default fallback otherwise.
+    mock_catalog: Dict[str, Dict[str, Any]] = {
+        "Pune": {
+            "city": "Pune",
+            "country": "IN",
+            "description": "clear sky",
+            "temperature_c": 29.0,
+            "feels_like_c": 30.0,
+            "humidity_pct": 48,
+            "pressure_hpa": 1012,
+            "wind_speed_ms": 3.2,
+            "wind_deg": 110,
+        },
+        "San Francisco": {
+            "city": "San Francisco",
+            "country": "US",
+            "description": "light drizzle",
+            "temperature_c": 16.0,
+            "feels_like_c": 15.0,
+            "humidity_pct": 82,
+            "pressure_hpa": 1015,
+            "wind_speed_ms": 5.5,
+            "wind_deg": 240,
+        },
+        "London": {
+            "city": "London",
+            "country": "GB",
+            "description": "broken clouds",
+            "temperature_c": 18.0,
+            "feels_like_c": 17.0,
+            "humidity_pct": 65,
+            "pressure_hpa": 1018,
+            "wind_speed_ms": 4.0,
+            "wind_deg": 200,
+        },
+        "New York": {
+            "city": "New York",
+            "country": "US",
+            "description": "overcast clouds",
+            "temperature_c": 22.0,
+            "feels_like_c": 22.0,
+            "humidity_pct": 60,
+            "pressure_hpa": 1013,
+            "wind_speed_ms": 3.8,
+            "wind_deg": 180,
+        },
+    }
 
-    # API docs: https://openweathermap.org/current
-    # Example endpoint: https://api.openweathermap.org/data/2.5/weather?q=Pune&appid=API_KEY&units=metric
-    params = {"q": city, "appid": api_key, "units": "metric"}
-    url = "https://api.openweathermap.org/data/2.5/weather"
+    data = mock_catalog.get(normalized) or {
+        "city": normalized,
+        "country": None,
+        "description": "partly cloudy",
+        "temperature_c": 24.0,
+        "feels_like_c": 25.0,
+        "humidity_pct": 55,
+        "pressure_hpa": 1014,
+        "wind_speed_ms": 3.0,
+        "wind_deg": 135,
+    }
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(url, params=params)
-        if resp.status_code == 404:
-            raise HTTPException(status_code=404, detail=f"City not found: {city}")
-        if resp.status_code != 200:
-            try:
-                j = resp.json()
-            except Exception:
-                j = {"error": resp.text}
-            raise HTTPException(
-                status_code=resp.status_code,
-                detail=f"OpenWeatherMap error: {j}",
-            )
-        data = resp.json()
-        # Narrow useful fields
-        main = data.get("main", {})
-        weather = (data.get("weather") or [{}])[0]
-        wind = data.get("wind", {})
-        sys = data.get("sys", {})
-        name = data.get("name") or city
-        result = {
-            "city": name,
-            "country": sys.get("country"),
-            "description": weather.get("description"),
-            "temperature_c": main.get("temp"),
-            "feels_like_c": main.get("feels_like"),
-            "humidity_pct": main.get("humidity"),
-            "pressure_hpa": main.get("pressure"),
-            "wind_speed_ms": wind.get("speed"),
-            "wind_deg": wind.get("deg"),
-            "source": "openweathermap",
-        }
-        return result
+    # Add metadata marking as mocked
+    data["source"] = "mocked-openweathermap"
+    data["mocked"] = True
+    return data
 
 
 def detect_weather_city(prompt: str) -> Optional[str]:
@@ -192,14 +215,15 @@ async def ndjson_weather_stream(city: str) -> AsyncGenerator[bytes, None]:
     if wind is not None:
         details_parts.append(f"wind {wind} m/s")
     details = ", ".join(details_parts) if details_parts else "no details"
-    yield (NDJSONChunk(type="token", value=details + ". ").model_dump_json() + "\n").encode()
+    mocked_note = " [mocked demo data]" if data.get("mocked") else ""
+    yield (NDJSONChunk(type="token", value=details + "." + mocked_note + " ").model_dump_json() + "\n").encode()
 
     # refs
     refs = [
         {
             "title": "OpenWeatherMap - Current Weather Data",
             "url": "https://openweathermap.org/current",
-            "snippet": "Live current weather information provided by OpenWeatherMap.",
+            "snippet": "This answer uses mocked/demo weather data shaped like OpenWeatherMap output.",
         }
     ]
     yield (NDJSONChunk(type="refs", value=refs).model_dump_json() + "\n").encode()
@@ -215,7 +239,7 @@ async def ndjson_weather_stream(city: str) -> AsyncGenerator[bytes, None]:
     description=(
         "Accepts a chat question and streams back NDJSON chunks. "
         "If the question is about current weather in a city (e.g., 'today's weather in Pune'), "
-        "the backend calls OpenWeatherMap and streams a live answer."
+        "the backend returns realistic mocked/demo data shaped like OpenWeatherMap output."
     ),
     tags=["chat"],
     responses={
@@ -242,7 +266,7 @@ async def ask(req: AskRequest):
       { "type": "error", "error": "..." }
 
     Notes:
-    - Weather questions trigger OpenWeatherMap lookup using OPENWEATHERMAP_API_KEY.
+    - Weather questions return mocked/demo weather data; no external API is called.
     """
     prompt = (req.prompt or "").strip()
     if not prompt:

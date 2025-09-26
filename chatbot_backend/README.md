@@ -13,7 +13,7 @@ This backend provides a Retrieval-Augmented Generation (RAG) API compatible with
 pip install -r requirements.txt
 ```
 
-2) Set environment variables (see .env.example). For live weather answers, set:
+2) Set environment variables (see .env.example). Weather answers are mocked/demo by default (no external API call). For reference to live API setup, see below:
 
 ```bash
 # Example (do NOT commit secrets):
@@ -23,7 +23,7 @@ export OPENAI_EMBEDDING_MODEL="text-embedding-3-small"
 export OPENAI_CHAT_MODEL="gpt-4o-mini"
 export HOST="0.0.0.0"
 export PORT="8080"
-# Weather (optional but required to answer weather questions)
+# Weather (optional; only needed if you later switch to live API calls)
 export OPENWEATHERMAP_API_KEY="owm-..."
 ```
 
