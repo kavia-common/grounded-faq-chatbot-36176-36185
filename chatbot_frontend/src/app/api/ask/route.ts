@@ -20,9 +20,17 @@
  *   On error: { "type": "error", "error": "message" }
  *
  * Notes:
- * - This is a frontend-only stub to unblock UI development. Replace the internal logic
- *   with a call to the real backend (e.g., fetch(`${BACKEND_URL}/api/ask`, { ... }))
- *   and pipe its streamed response back to the client.
+ * - This is a frontend-only stub to unblock UI development.
+ * - To integrate with the real backend, either:
+ *   1) Use Next rewrites in next.config.ts (preferred; already supported when NEXT_PUBLIC_BACKEND_URL is set),
+ *      so /api/ask proxies to ${NEXT_PUBLIC_BACKEND_URL}/api/ask automatically.
+ *   2) Or, forward here:
+ *      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+ *      const resp = await fetch(`${BACKEND_URL}/api/ask`, { method: "POST", headers: { "content-type": "application/json" }, body: await req.text() });
+ *      return new Response(resp.body, { status: resp.status, headers: { "content-type": "application/x-ndjson; charset=utf-8" }});
+ *
+ * Security:
+ * - Never expose OPENAI_API_KEY in the frontend. Keep model calls on the backend.
  */
 export async function POST(req: Request): Promise<Response> {
   try {
