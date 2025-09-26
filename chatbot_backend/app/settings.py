@@ -8,13 +8,13 @@ load_dotenv()
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=None, extra="ignore")
 
-    # OpenAI
-    OPENAI_API_KEY: str
+    # OpenAI (RAG path)
+    OPENAI_API_KEY: str | None = None
     OPENAI_CHAT_MODEL: str = "gpt-4o-mini"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
 
-    # Database
-    DATABASE_URL: str
+    # Database (RAG path)
+    DATABASE_URL: str | None = None
 
     # RAG
     RAG_TOP_K: int = 4
@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8080
+
+    # External APIs
+    # OpenWeatherMap API key is not strictly required if you don't use weather questions.
+    OPENWEATHERMAP_API_KEY: str | None = None
 
 settings = Settings()
 
