@@ -46,7 +46,7 @@ export async function POST(req: Request): Promise<Response> {
       });
     }
 
-    const body = await req.json().catch(() => null) as
+    const body = (await req.json().catch(() => null)) as
       | { prompt?: string; history?: Array<{ role: "user" | "assistant" | "system"; content: string }> }
       | null;
 
@@ -62,32 +62,46 @@ export async function POST(req: Request): Promise<Response> {
 
     const prompt = body.prompt.trim();
 
-    // Example: Integrate with a real backend
-    // const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL; // do NOT hardcode; use .env
-    // if (!BACKEND_URL) { /* return error or fallback */ }
-    // const backendResp = await fetch(`${BACKEND_URL}/api/ask`, { method: "POST", headers: {...}, body: JSON.stringify(body) });
-    // return new Response(backendResp.body, {
-    //   status: backendResp.status,
-    //   headers: { "content-type": "application/x-ndjson; charset=utf-8" },
-    // });
+    // If NEXT_PUBLIC_BACKEND_URL is set but rewrites are not used (e.g., next export),
+    // forward the request server-side to the backend and proxy the stream back.
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "");
+    if (BACKEND_URL) {
+      try {
+        const fwd = await fetch(`${BACKEND_URL}/api/ask`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (fwd.ok && fwd.body) {
+          return new Response(fwd.body, {
+            status: fwd.status,
+            headers: {
+              "content-type":
+                fwd.headers.get("content-type") || "application/x-ndjson; charset=utf-8",
+              "cache-control": "no-store",
+            },
+          });
+        }
+        // If backend not reachable or error, fall back to stub below
+      } catch {
+        // Ignore and use stub
+      }
+    }
 
     // Stubbed streaming response to emulate token-by-token generation
     const stream = new ReadableStream({
       start(controller) {
-        // Helper to enqueue a JSON line
         const send = (obj: Record<string, unknown>) => {
           const line = JSON.stringify(obj) + "\n";
           controller.enqueue(new TextEncoder().encode(line));
         };
 
-        // Simulate async token streaming
         const tokens = [
           "Here", " is", " a", " grounded", " answer", " about", " your", " question", " \"",
           prompt.slice(0, 64), "\".", " ",
           "This", " is", " a", " demo", " response", " generated", " by", " the", " stubbed", " endpoint."
         ];
 
-        // Start event
         send({ type: "start", messageId: `msg_${Date.now()}` });
 
         let i = 0;
@@ -96,8 +110,6 @@ export async function POST(req: Request): Promise<Response> {
             send({ type: "token", value: tokens[i++] });
           } else {
             clearInterval(interval);
-
-            // Send references once at the end
             send({
               type: "refs",
               value: [
@@ -117,8 +129,6 @@ export async function POST(req: Request): Promise<Response> {
                 },
               ],
             });
-
-            // Done event
             send({ type: "done" });
             controller.close();
           }
@@ -142,8 +152,6 @@ export async function POST(req: Request): Promise<Response> {
         ? String((err as { message?: string }).message)
         : "Internal server error";
 
-    // Return error as NDJSON line; still a 200 body to align with streaming expectations,
-    // but you could also choose an error status. The frontend handles { type: "error" } lines.
     return new Response(JSON.stringify({ type: "error", error: message }) + "\n", {
       status: 200,
       headers: {

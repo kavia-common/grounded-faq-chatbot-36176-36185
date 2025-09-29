@@ -5,6 +5,7 @@ Modern, minimalist chat UI with Ocean Professional theme. Centered chat panel, s
 ## Run locally
 
 ```bash
+cp .env.example .env                 # set NEXT_PUBLIC_BACKEND_URL if using a real backend
 npm install
 npm run dev
 # open http://localhost:3000
@@ -24,13 +25,13 @@ The UI integrates with a backend route at:
 
 - POST /api/ask
 
-This repository includes a stubbed Next.js API route at `src/app/api/ask/route.ts` that streams NDJSON to unblock the chat UI locally. Replace the stub with a call to your real backend when available.
+The repo ships with a stubbed Next.js API route at `src/app/api/ask/route.ts` that streams NDJSON so you can test the chat UI without a backend.
 
-To wire a real backend:
-- Set an environment variable (request from orchestrator): `NEXT_PUBLIC_BACKEND_URL=https://your-backend-host`
-- In `src/app/api/ask/route.ts`, forward the request: 
-  `await fetch(\`\${process.env.NEXT_PUBLIC_BACKEND_URL}/api/ask\`, { method: "POST", headers, body })` and stream the response body back to the client.
-- Alternatively, configure Next.js rewrites in `next.config.ts` to proxy `/api/ask` to your backend service.
+To connect a real backend:
+- Set `NEXT_PUBLIC_BACKEND_URL=https://your-backend-host:8080` (request the value from the orchestrator; do not commit real envs).
+- Option A (recommended): Next.js rewrite proxy is auto-configured in `next.config.ts` when `NEXT_PUBLIC_BACKEND_URL` is present to route `/api/ask` to your backend.
+- Option B: The API route itself detects `NEXT_PUBLIC_BACKEND_URL` and will forward to `${NEXT_PUBLIC_BACKEND_URL}/api/ask` and stream the response back.
+- Ensure your backend returns streaming NDJSON as described below.
 
 Expected request payload:
 
@@ -41,7 +42,7 @@ Expected request payload:
 }
 ```
 
-Expected streaming response over the HTTP body as NDJSON lines (one JSON per line). Supported chunk shapes:
+Expected streaming response (NDJSON lines, one JSON per line):
 
 ```json
 { "type": "start", "messageId": "optional" }
@@ -66,5 +67,8 @@ The frontend accumulates `token` chunks into the assistant message and shows `re
 
 ## Notes
 
-- History is currently in-memory; a small localStorage helper is included at `src/lib/history.ts` for future use.
-- This app is exportable (next.config.ts has `output: "export"`). Ensure backend is available when deployed behind the same origin.
+- History is currently in-memory.
+- This app is exportable (next.config.ts has `output: "export"`). Ensure backend is available when deployed behind the same origin or via rewrites.
+- Env vars:
+  - NEXT_PUBLIC_BACKEND_URL: URL to your backend (for proxy/forward).
+  - NEXT_PUBLIC_OPENAI_API_KEY: Placeholder; do not expose real keys client-side. All model calls should happen on the backend.

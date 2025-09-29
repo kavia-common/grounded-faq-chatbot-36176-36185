@@ -184,7 +184,7 @@ export default function Home() {
                 Ask grounded questions
               </h1>
               <p className="small-muted">
-                Your answers stream in with citations from your knowledge base.
+                Your answers stream in with citations from your knowledge base. Press <span className="kbd">Enter</span> to send, <span className="kbd">Shift</span>+<span className="kbd">Enter</span> for a new line.
               </p>
             </div>
           ) : null}
