@@ -6,10 +6,20 @@ Modern, minimalist chat UI with Ocean Professional theme. Centered chat panel, s
 
 ```bash
 cp .env.example .env                 # set NEXT_PUBLIC_BACKEND_URL if using a real backend
+# .env (do NOT commit real values)
+# NEXT_PUBLIC_BACKEND_URL=https://localhost:8000
 npm install
 npm run dev
 # open http://localhost:3000
 ```
+
+How proxying works:
+- If `NEXT_PUBLIC_BACKEND_URL` is set, there are two layers that can route your request to the real backend:
+  1) A Next.js rewrite defined in `next.config.ts` that proxies `/api/ask` to `${NEXT_PUBLIC_BACKEND_URL}/api/ask` (avoids CORS).
+  2) The API route `src/app/api/ask/route.ts` will also forward the request server-side when `NEXT_PUBLIC_BACKEND_URL` is set, streaming the backend response to the browser.
+- If the backend is unreachable, the API route returns an NDJSON error line such as:
+  `{ "type": "error", "error": "Backend unavailable (...)" }`, which the UI displays to the user.
+- If `NEXT_PUBLIC_BACKEND_URL` is not set, the API route falls back to a local stub that streams demo tokens and references.
 
 ## UI Overview
 
